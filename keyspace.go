@@ -144,14 +144,14 @@ func (k *k) FlexMultiTimeSeriesTable(name, timeField, idField string, indexField
 
 // Tables returns table names in a keyspace
 func (k *k) Tables() ([]string, error) {
-	const stmt = "select columnfamily_name from system.schema_columnfamilies where keyspace_name = ?"
+	const stmt = "select table_name from system_schema.columns where keyspace_name = ?"
 	maps, err := k.qe.Query(stmt, k.name)
 	if err != nil {
 		return nil, err
 	}
 	ret := []string{}
 	for _, m := range maps {
-		ret = append(ret, m["columnfamily_name"].(string))
+		ret = append(ret, m["table_name"].(string))
 	}
 	return ret, nil
 }
