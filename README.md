@@ -21,7 +21,7 @@ package main
 import(
     "fmt"
     "time"
-    
+
     "github.com/gocassa/gocassa"
 )
 
@@ -116,7 +116,7 @@ Read, Set, Update, and Delete all happen by "Id".
 ```
 [link to this example](https://github.com/gocassa/gocassa/blob/master/examples/multimap_table1/multimap_table1.go)
 
-For examples on how to do pagination or Update with this table, refer to the example (linked under code snippet). 
+For examples on how to do pagination or Update with this table, refer to the example (linked under code snippet).
 
 #### TimeSeriesTable
 
@@ -197,7 +197,7 @@ When encoding maps with non-string keys the key values are automatically convert
 
 ### Too long table names
 
-In case you get the following error: 
+In case you get the following error:
 
 ```
 Column family names shouldn't be more than 48 characters long (got "somelongishtablename_multitimeseries_start_id_24h0m0s")

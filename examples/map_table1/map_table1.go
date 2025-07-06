@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/gocassa/gocassa"
 	"time"
+
+	"github.com/gocassa/gocassa"
 )
 
 // This test assumes that cassandra is running on default port locally and

@@ -164,7 +164,7 @@ func (o *singleOp) generateWrite(opt Options) (string, []interface{}) {
 		vals = append(uvals, whereVals...)
 	case deleteOpType:
 		str, vals = generateWhere(o.f.rs)
-		str = fmt.Sprintf("DELETE FROM %s.%s%s", o.f.t.keySpace.name, o.f.t.Name(), str)
+		str = fmt.Sprintf("delete from %s.%s%s", o.f.t.keySpace.name, o.f.t.Name(), str)
 	case insertOpType:
 		fields, insertVals := keyValues(o.m)
 		str = insertStatement(o.f.t.keySpace.name, o.f.t.Name(), fields, o.f.t.options.Merge(opt))
@@ -181,7 +181,7 @@ func (o *singleOp) generateRead(opt Options) (string, []interface{}) {
 	mopt := o.f.t.options.Merge(opt)
 	ord, ov := o.generateOrderBy(mopt)
 	lim, lv := o.generateLimit(mopt)
-	stmt := fmt.Sprintf("SELECT %s FROM %s.%s", o.f.t.generateFieldNames(mopt.Select), o.f.t.keySpace.name, o.f.t.Name())
+	stmt := fmt.Sprintf("select %s from %s.%s", o.f.t.generateFieldNames(mopt.Select), o.f.t.keySpace.name, o.f.t.Name())
 	vals := []interface{}{}
 	buf := new(bytes.Buffer)
 	buf.WriteString(stmt)

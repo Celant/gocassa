@@ -130,7 +130,8 @@ func transformFields(m map[string]interface{}) {
 }
 
 // INSERT INTO Hollywood.NerdMovies (user_uuid, fan)
-//   VALUES ('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6', 'johndoe')
+//
+//	VALUES ('cfd66ccc-d857-4e90-b1e5-df98a3d40cd6', 'johndoe')
 //
 // Gotcha: primkey must be first
 func insertStatement(keySpaceName, cfName string, fieldNames []string, opts Options) string {
@@ -144,7 +145,7 @@ func insertStatement(keySpaceName, cfName string, fieldNames []string, opts Opti
 	}
 
 	buf := new(bytes.Buffer)
-	buf.WriteString(fmt.Sprintf("INSERT INTO %s.%s (%s) VALUES (%s)",
+	buf.WriteString(fmt.Sprintf("insert into %s.%s (%s) values (%s)",
 		keySpaceName,
 		cfName,
 		strings.Join(lowerFieldNames, ", "),

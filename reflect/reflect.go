@@ -10,14 +10,14 @@ import (
 // tag value. The "cql" key in the struct field's tag value is the key
 // name. Examples:
 //
-//   // Field appears in the resulting map as key "myName".
-//   Field int `cql:"myName"`
+//	// Field appears in the resulting map as key "myName".
+//	Field int `cql:"myName"`
 //
-//   // Field appears in the resulting as key "Field"
-//   Field int
+//	// Field appears in the resulting as key "Field"
+//	Field int
 //
-//   // Field appears in the resulting map as key "myName"
-//   Field int "myName"
+//	// Field appears in the resulting map as key "myName"
+//	Field int "myName"
 func StructToMap(val interface{}) (map[string]interface{}, bool) {
 	// indirect so function works with both structs and pointers to them
 	structVal := r.Indirect(r.ValueOf(val))

@@ -144,7 +144,7 @@ func (k *k) FlexMultiTimeSeriesTable(name, timeField, idField string, indexField
 
 // Tables returns table names in a keyspace
 func (k *k) Tables() ([]string, error) {
-	const stmt = "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = ?"
+	const stmt = "select columnfamily_name from system.schema_columnfamilies where keyspace_name = ?"
 	maps, err := k.qe.Query(stmt, k.name)
 	if err != nil {
 		return nil, err
@@ -170,7 +170,7 @@ func (k *k) Exists(cf string) (bool, error) {
 }
 
 func (k *k) DropTable(cf string) error {
-	stmt := fmt.Sprintf("DROP TABLE IF EXISTS %s.%s", k.name, cf)
+	stmt := fmt.Sprintf("drop table IF exists %s.%s", k.name, cf)
 	return k.qe.Execute(stmt)
 }
 
