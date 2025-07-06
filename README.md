@@ -1,8 +1,7 @@
 gocassa
 =======
 
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg "GoDoc")](http://godoc.org/github.com/gocassa/gocassa) 
-[![Build Status](https://img.shields.io/travis/hailocab/gocassa/master.svg "Build Status")](https://travis-ci.org/hailocab/gocassa)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg "GoDoc")](http://godoc.org/github.com/gocassa/gocassa)
 
 Gocassa is a high-level library on top of [gocql](https://github.com/gocql/gocql).
 
