@@ -1,6 +1,7 @@
 package gocassa
 
 import (
+	"context"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -54,6 +55,8 @@ type Options struct {
 	CompactStorage bool
 	// Compressor specifies the compressor (if any) to use on a newly created table
 	Compressor string
+	// Context is the context to use for the query, which is propagated to the underlying QueryExecutor
+	Context context.Context
 }
 
 // Merge returns a new Options which is a right biased merge of the two initial Options.

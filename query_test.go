@@ -1,6 +1,7 @@
 package gocassa
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -135,6 +136,62 @@ func TestRunAtomically(t *testing.T) {
 	}
 	if len(res) != 2 {
 		t.Fatal(res)
+	}
+}
+
+func TestRunAtomicallyWithContextBasic(t *testing.T) {
+	name := "customer_multipletest_ctx"
+	cs := ns.Table(name, Customer{}, Keys{
+		PartitionKeys:     []string{"Name"},
+		ClusteringColumns: []string{"Id"},
+	})
+	err := cs.(TableChanger).Recreate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	err = cs.Set(Customer{
+		Id:   "12",
+		Name: "John",
+	}).Add(cs.Set(Customer{
+		Id:   "13",
+		Name: "John",
+	})).RunAtomicallyWithContext(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res := []Customer{}
+	err = cs.Where(Eq("Name", "John")).Read(&res).Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 2 {
+		t.Fatal(res)
+	}
+}
+
+func TestRunAtomicallyWithContextCanceled(t *testing.T) {
+	name := "customer_multipletest_ctx_cancel"
+	cs := ns.Table(name, Customer{}, Keys{
+		PartitionKeys:     []string{"Name"},
+		ClusteringColumns: []string{"Id"},
+	})
+	err := cs.(TableChanger).Recreate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err = cs.Set(Customer{
+		Id:   "12",
+		Name: "John",
+	}).Add(cs.Set(Customer{
+		Id:   "13",
+		Name: "John",
+	})).RunAtomicallyWithContext(ctx)
+	if err == nil {
+		t.Fatal("expected error from canceled context, got nil")
 	}
 }
 
@@ -485,5 +542,40 @@ func TestSelect(t *testing.T) {
 	}
 	if c.Float32 != 0 {
 		t.Fatal(c)
+	}
+}
+
+func TestRunWithContextBasic(t *testing.T) {
+	tbl := ns.MapTable("customer_ctx_basic", "Id", CustomerWithCounter{})
+	createIf(tbl.(TableChanger), t)
+	c := CustomerWithCounter{
+		Id:      "1",
+		Counter: Counter(0),
+	}
+	ctx := context.Background()
+	if err := tbl.Set(c).RunWithContext(ctx); err != nil {
+		t.Fatal(err)
+	}
+	c2 := CustomerWithCounter{}
+	if err := tbl.Read("1", &c2).RunWithContext(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if c2.Id != c.Id || c2.Counter != c.Counter {
+		t.Fatalf("expected %+v, got %+v", c, c2)
+	}
+}
+
+func TestRunWithContextCanceled(t *testing.T) {
+	tbl := ns.MapTable("customer_ctx_canceled", "Id", CustomerWithCounter{})
+	createIf(tbl.(TableChanger), t)
+	c := CustomerWithCounter{
+		Id:      "1",
+		Counter: Counter(0),
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately
+	err := tbl.Set(c).RunWithContext(ctx)
+	if err == nil {
+		t.Fatal("expected error from canceled context, got nil")
 	}
 }

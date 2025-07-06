@@ -2,6 +2,7 @@ package gocassa
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -92,6 +93,17 @@ func (w *singleOp) write() error {
 }
 
 func (o *singleOp) Run() error {
+	return o.RunWithContext(context.TODO())
+}
+
+func (o *singleOp) RunAtomically() error {
+	// This is just runs the singleOp, as it does not support atomic operations.
+	// If you need atomic operations, use multiOp instead.
+	return o.Run()
+}
+
+func (o *singleOp) RunWithContext(ctx context.Context) error {
+	o.options.Context = ctx
 	switch o.opType {
 	case updateOpType, insertOpType, deleteOpType:
 		return o.write()
@@ -103,8 +115,10 @@ func (o *singleOp) Run() error {
 	return nil
 }
 
-func (o *singleOp) RunAtomically() error {
-	return o.Run()
+func (o *singleOp) RunAtomicallyWithContext(ctx context.Context) error {
+	// This is just runs the singleOp, as it does not support atomic operations.
+	// If you need atomic operations, use multiOp instead.
+	return o.RunWithContext(ctx)
 }
 
 func (o *singleOp) GenerateStatement() (string, []interface{}) {
@@ -141,6 +155,14 @@ func (o *badOp) Run() error {
 
 func (o *badOp) RunAtomically() error {
 	return o.Run()
+}
+
+func (o *badOp) RunWithContext(_ context.Context) error {
+	return o.err
+}
+
+func (o *badOp) RunAtomicallyWithContext(_ context.Context) error {
+	return o.err
 }
 
 func (o *badOp) GenerateStatement() (string, []interface{}) {

@@ -1,6 +1,7 @@
 package gocassa
 
 import (
+	"context"
 	"time"
 )
 
@@ -139,10 +140,15 @@ type Keys struct {
 type Op interface {
 	// Run the operation.
 	Run() error
+	// RunAtomically executes the operation in a logged batch.
 	// You do not need this in 95% of the use cases, use Run!
 	// Using atomic batched writes (logged batches in Cassandra terminology) comes at a high performance cost!
 	RunAtomically() error
-	// Add an other Op to this one.
+	// RunWithContext runs the operation with the specified context.
+	RunWithContext(context.Context) error
+	// RunAtomicallyWithContext runs the operation in a logged batch with the specified context.
+	RunAtomicallyWithContext(context.Context) error
+	// Add another Op to this one.
 	Add(...Op) Op
 	// WithOptions lets you specify `Op` level `Options`.
 	// The `Op` level Options and the `Table` level `Options` will be merged in a way that Op level takes precedence.
@@ -211,6 +217,8 @@ type QueryExecutor interface {
 	Execute(stmt string, params ...interface{}) error
 	// ExecuteAtomically executs multiple DML queries with a logged batch
 	ExecuteAtomically(stmt []string, params [][]interface{}) error
+	// ExecuteAtomicallyWithOptions executes multiple DML queries with a logged batch, using the provided options
+	ExecuteAtomicallyWithOptions(opts Options, stmt []string, params [][]interface{}) error
 	// Close closes the open session
 	Close()
 }

@@ -300,6 +300,10 @@ func (qe OptionCheckingQE) ExecuteAtomically(stmt []string, params [][]interface
 	return nil
 }
 
+func (qe OptionCheckingQE) ExecuteAtomicallyWithOptions(opts Options, stmt []string, params [][]interface{}) error {
+	return nil
+}
+
 func (qe OptionCheckingQE) Close() {
 }
 

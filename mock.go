@@ -2,6 +2,7 @@ package gocassa
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -33,6 +34,11 @@ func (m mockOp) Add(ops ...Op) Op {
 }
 
 func (m mockOp) Run() error {
+	return m.RunWithContext(context.TODO())
+}
+
+func (m mockOp) RunWithContext(ctx context.Context) error {
+	m.options.Context = ctx
 	for _, f := range m.funcs {
 		err := f(m)
 		if err != nil {
@@ -51,6 +57,10 @@ func (m mockOp) WithOptions(opt Options) Op {
 
 func (m mockOp) RunAtomically() error {
 	return m.Run()
+}
+
+func (m mockOp) RunAtomicallyWithContext(ctx context.Context) error {
+	return m.RunWithContext(ctx)
 }
 
 func (m mockOp) GenerateStatement() (string, []interface{}) {

@@ -1,5 +1,10 @@
 package gocassa
 
+import (
+	"context"
+	"errors"
+)
+
 type multiOp []Op
 
 func Noop() Op {
@@ -7,15 +12,7 @@ func Noop() Op {
 }
 
 func (mo multiOp) Run() error {
-	if err := mo.Preflight(); err != nil {
-		return err
-	}
-	for _, op := range mo {
-		if err := op.Run(); err != nil {
-			return err
-		}
-	}
-	return nil
+	return mo.RunWithContext(context.TODO())
 }
 
 func (mo multiOp) RunAtomically() error {
@@ -33,6 +30,38 @@ func (mo multiOp) RunAtomically() error {
 	}
 
 	return qe.ExecuteAtomically(stmts, vals)
+}
+
+func (mo multiOp) RunWithContext(ctx context.Context) error {
+	if err := mo.Preflight(); err != nil {
+		return err
+	}
+	for _, op := range mo {
+		if err := op.RunWithContext(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (mo multiOp) RunAtomicallyWithContext(ctx context.Context) error {
+	if err := mo.Preflight(); err != nil {
+		return err
+	}
+	stmts := make([]string, len(mo))
+	vals := make([][]interface{}, len(mo))
+	var qe QueryExecutor
+	for i, op := range mo {
+		s, v := op.GenerateStatement()
+		qe = op.QueryExecutor()
+		stmts[i] = s
+		vals[i] = v
+	}
+
+	if qe == nil {
+		return errors.New("no query executor found for multiOp")
+	}
+	return qe.ExecuteAtomicallyWithOptions(Options{Context: ctx}, stmts, vals)
 }
 
 func (mo multiOp) GenerateStatement() (string, []interface{}) {

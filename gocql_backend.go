@@ -15,6 +15,9 @@ func (cb goCQLBackend) QueryWithOptions(opts Options, stmt string, vals ...inter
 	if opts.Consistency != nil {
 		qu = qu.Consistency(*opts.Consistency)
 	}
+	if opts.Context != nil {
+		qu = qu.WithContext(opts.Context)
+	}
 	iter := qu.Iter()
 	ret := []map[string]interface{}{}
 	m := &map[string]interface{}{}
@@ -34,6 +37,9 @@ func (cb goCQLBackend) ExecuteWithOptions(opts Options, stmt string, vals ...int
 	if opts.Consistency != nil {
 		qu = qu.Consistency(*opts.Consistency)
 	}
+	if opts.Context != nil {
+		qu = qu.WithContext(opts.Context)
+	}
 	return qu.Exec()
 }
 
@@ -42,6 +48,10 @@ func (cb goCQLBackend) Execute(stmt string, vals ...interface{}) error {
 }
 
 func (cb goCQLBackend) ExecuteAtomically(stmts []string, vals [][]interface{}) error {
+	return cb.ExecuteAtomicallyWithOptions(Options{}, stmts, vals)
+}
+
+func (cb goCQLBackend) ExecuteAtomicallyWithOptions(opts Options, stmts []string, vals [][]interface{}) error {
 	if len(stmts) != len(vals) {
 		return errors.New("executeBatched: stmts length != param length")
 	}
@@ -50,6 +60,9 @@ func (cb goCQLBackend) ExecuteAtomically(stmts []string, vals [][]interface{}) e
 		return nil
 	}
 	batch := cb.session.NewBatch(gocql.LoggedBatch)
+	if opts.Context != nil {
+		batch = batch.WithContext(opts.Context)
+	}
 	for i, _ := range stmts {
 		batch.Query(stmts[i], vals[i]...)
 	}
