@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// Connection exists because one can not connect to a keyspace if it does not exist, thus having a Create on KeySpace is not possible.
-// Use ConnectToKeySpace to acquire an instance of KeySpace without getting a Connection.
+// Connection represents a connection to the database, allowing keyspace management.
+// Use ConnectToKeySpace to acquire a KeySpace instance without a Connection.
 type Connection interface {
 	CreateKeySpace(name string) error
 	DropKeySpace(name string) error
@@ -14,7 +14,7 @@ type Connection interface {
 	Close()
 }
 
-// KeySpace is used to obtain tables from.
+// KeySpace provides access to tables within a keyspace.
 type KeySpace interface {
 	MapTable(tableName, id string, row interface{}) MapTable
 	MultimapTable(tableName, fieldToIndexBy, uniqueKey string, row interface{}) MultimapTable
@@ -24,13 +24,13 @@ type KeySpace interface {
 	FlexMultiTimeSeriesTable(name, timeField, idField string, indexFields []string, bucketer Bucketer, row interface{}) MultiTimeSeriesTable
 	Table(tableName string, row interface{}, keys Keys) Table
 	// DebugMode enables/disables debug mode depending on the value of the input boolean.
-	// When DebugMode is enabled, all built CQL statements are printe to stdout.
+	// When DebugMode is enabled, all built CQL statements are printed to stdout.
 	DebugMode(bool)
 	// Name returns the keyspace name as in C*
 	Name() string
-	// Tables returns the name of all configured column families in this keyspace
+	// Tables returns the names of all configured tables in the keyspace.
 	Tables() ([]string, error)
-	// Exists returns whether the specified column family exists within the keyspace
+	// Exists returns whether the specified table exists in the keyspace.
 	Exists(string) (bool, error)
 }
 
@@ -38,7 +38,7 @@ type KeySpace interface {
 // Map recipe
 //
 
-// MapTable gives you basic CRUD functionality. If you need fancier ways to query your data set have a look at the other tables.
+// MapTable provides basic CRUD operations for a table.
 type MapTable interface {
 	Set(v interface{}) Op
 	Update(id interface{}, m map[string]interface{}) Op
@@ -53,7 +53,7 @@ type MapTable interface {
 // Multimap recipe
 //
 
-// MultimapTable lets you list rows based on a field equality, eg. 'list all sales where seller id = v'.
+// MultimapTable allows listing rows by field equality, for example: list all sales where seller id = v.
 type MultimapTable interface {
 	Set(v interface{}) Op
 	Update(v, id interface{}, m map[string]interface{}) Op
@@ -66,7 +66,8 @@ type MultimapTable interface {
 	TableChanger
 }
 
-// MultimapMkTable lets you list rows based on several fields equality, eg. 'list all sales where seller id = v and name = 'john'.
+// MultimapMkTable lets you list rows based on several fields equality, for example:
+// list all sales where seller id = v and name = 'john'.
 type MultimapMkTable interface {
 	Set(v interface{}) Op
 	Update(v, id map[string]interface{}, m map[string]interface{}) Op
@@ -85,7 +86,8 @@ type MultimapMkTable interface {
 
 // TimeSeriesTable lets you list rows which have a field value between two date ranges.
 type TimeSeriesTable interface {
-	// timeField and idField must be present
+	// Set inserts or replaces a row in the table.
+	// It requires the timeField and idField to be present in the struct.
 	Set(v interface{}) Op
 	Update(timeStamp time.Time, id interface{}, m map[string]interface{}) Op
 	Delete(timeStamp time.Time, id interface{}) Op
@@ -101,7 +103,8 @@ type TimeSeriesTable interface {
 
 // MultiTimeSeriesTable is a cross between TimeSeries and Multimap tables.
 type MultiTimeSeriesTable interface {
-	// timeField and idField must be present
+	// Set inserts or replaces a row in the table.
+	// It requires the timeField and idField to be present in the struct.
 	Set(v interface{}) Op
 	Update(v interface{}, timeStamp time.Time, id interface{}, m map[string]interface{}) Op
 	Delete(v interface{}, timeStamp time.Time, id interface{}) Op
@@ -115,28 +118,27 @@ type MultiTimeSeriesTable interface {
 // Raw CQL
 //
 
-// Filter is a subset of a Table, filtered by Relations.
-// You can do writes or reads on a filter.
+// Filter represents a subset of a Table filtered by Relations. Supports reads and writes.
 type Filter interface {
-	// Updates does a partial update. Use this if you don't want to overwrite your whole row, but you want to modify fields atomically.
-	Update(m map[string]interface{}) Op // Probably this is danger zone (can't be implemented efficiently) on a selectuinb with more than 1 document
-	// Delete all rows matching the filter.
+	// Update performs a partial update on all rows matching the filter by modifying only the specified fields in the provided map.
+	// Note: If the filter matches more than one row, this operation may be inefficient and could have performance implications.
+	Update(m map[string]interface{}) Op
+	// Delete deletes all rows matching the filter.
 	Delete() Op
-	// Read the results. Make sure you pass in a pointer to a slice.
+	// Read reads all rows matching the filter. Make sure you pass in a pointer to a slice of structs.
 	Read(pointerToASlice interface{}) Op
-	// Read one result. Make sure you pass in a pointer.
+	// ReadOne reads a single row matching the filter. Make sure you pass in a pointer to a struct.
 	ReadOne(pointer interface{}) Op
 }
 
-// Keys is used with the raw CQL Table type. It is implicit when using recipe tables.
+// Keys defines partition and clustering keys for a table.
 type Keys struct {
 	PartitionKeys     []string
 	ClusteringColumns []string
-	Compound          bool //indicates if the partitions keys are gereated as compound key when no clustering columns are set
+	Compound          bool // indicates if the partitions keys are generated as compound key when no clustering columns are set
 }
 
-// Op is returned by both read and write methods, you have to run them explicitly to take effect.
-// It represents one or more operations.
+// Op represents one or more database operations that must be run explicitly.
 type Op interface {
 	// Run the operation.
 	Run() error
@@ -163,59 +165,53 @@ type Op interface {
 	// Preflight performs any pre-execution validation that confirms the op considers itself "valid".
 	// NOTE: Run() and RunAtomically() should call this method before execution, and abort if any errors are returned.
 	Preflight() error
-	// GenerateStatement generates the statment and params to perform the operation
+	// GenerateStatement generates the statement and params to perform the operation
 	GenerateStatement() (string, []interface{})
 	// QueryExecutor returns the QueryExecutor
 	QueryExecutor() QueryExecutor
 }
 
+// TableChanger is an interface that allows you to create, recreate or drop a table.
 // Danger zone! Do not use this interface unless you really know what you are doing
 type TableChanger interface {
-	// Create creates the table in the keySpace, but only if it does not exist already.
-	// If the table already exists, it returns an error.
+	// Create creates the table in the keySpace, but only if it does not exist already, returning an error otherwise.
 	Create() error
-	// CreateStatement returns you the CQL query which can be used to create the table manually in cqlsh
+	// CreateStatement returns you the CQL query which can be used to create the table manually in cqlsh.
 	CreateStatement() (string, error)
-	// Create creates the table in the keySpace, but only if it does not exist already.
-	// If the table already exists, then nothing is created.
+	// CreateIfNotExist creates the table in the keySpace, but only if it does not exist already.
 	CreateIfNotExist() error
-	// CreateStatement returns you the CQL query which can be used to create the table manually in cqlsh
+	// CreateIfNotExistStatement returns you the CQL query which can be used to create the table manually in cqlsh.
 	CreateIfNotExistStatement() (string, error)
 	// Recreate drops the table if exists and creates it again.
 	// This is useful for test purposes only.
 	Recreate() error
 	// Name returns the name of the table, as in C*
 	Name() string
-	//Drop() error
-	//CreateIfDoesNotExist() error
 }
 
-// Table is the only non-recipe table, it is the "raw CQL table", it lets you do pretty much whatever you want
-// with the downside that you have to know what you are doing - eg. you have to know what queries can you make
-// on a certain partition key - clustering column combination.
+// Table is a non-recipe table that allows raw CQL operations. Requires knowledge of Cassandra queries.
 type Table interface {
 	// Set Inserts, or Replaces your row with the supplied struct. Be aware that what is not in your struct
 	// will be deleted. To only overwrite some of the fields, use Query.Update.
 	Set(v interface{}) Op
-	// Where accepts a bunch of realtions and returns a filter. See the documentation for Relation and Filter to understand what that means.
+	// Where allows you to Filter the table by Relation(s). This is useful for reading, updating or deleting rows.
 	Where(relations ...Relation) Filter // Because we provide selections
-	// Name returns the underlying table name, as stored in C*
+	// WithOptions allows you to specify `Options` for the table.
 	WithOptions(Options) Table
 	TableChanger
 }
 
-// QueryExecutor actually executes the queries - this is mostly useful for testing/mocking purposes,
-// ignore this otherwise. This library is using github.com/gocql/gocql as the query executor by default.
+// QueryExecutor executes queries, mainly for testing or mocking. The default implementation uses github.com/gocql/gocql.
 type QueryExecutor interface {
-	// Query executes a query and returns the results.  It also takes Options to do things like set consistency
+	// QueryWithOptions executes a query with the provided options and returns the results
 	QueryWithOptions(opts Options, stmt string, params ...interface{}) ([]map[string]interface{}, error)
 	// Query executes a query and returns the results
 	Query(stmt string, params ...interface{}) ([]map[string]interface{}, error)
-	// Execute executes a DML query. It also takes Options to do things like set consistency
+	// ExecuteWithOptions executes a DML query using the provided options
 	ExecuteWithOptions(opts Options, stmt string, params ...interface{}) error
 	// Execute executes a DML query
 	Execute(stmt string, params ...interface{}) error
-	// ExecuteAtomically executs multiple DML queries with a logged batch
+	// ExecuteAtomically executes multiple DML queries with a logged batch
 	ExecuteAtomically(stmt []string, params [][]interface{}) error
 	// ExecuteAtomicallyWithOptions executes multiple DML queries with a logged batch, using the provided options
 	ExecuteAtomicallyWithOptions(opts Options, stmt []string, params [][]interface{}) error
